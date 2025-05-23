@@ -16,6 +16,10 @@ CREATE OR REPLACE FILE FORMAT json_file_format
   COMMENT = 'Стейдж за качване на JSON файлове с поръчки и клиенти';
 
 
+  USE DATABASE orders_db;
+USE SCHEMA orders_schema;
+
+
 snowsql -q "PUT file:///path/to/customers.json @raw_data_stage AUTO_COMPRESS=TRUE;"
 snowsql -q "PUT file:///path/to/orders.json @raw_data_stage AUTO_COMPRESS=TRUE;"
 
@@ -27,6 +31,9 @@ CREATE OR REPLACE TABLE raw_customers_json (
 CREATE OR REPLACE TABLE raw_orders_json (
   raw VARIANT
 );
+
+
+
 
 CREATE OR REPLACE TABLE td_customers (
   customer_id STRING PRIMARY KEY,
@@ -55,12 +62,13 @@ CREATE OR REPLACE TABLE td_order_items (
 
 COPY INTO raw_customers_json(raw)
 FROM @raw_data_stage/customers.json
-FILE_FORMAT = (FORMAT_NAME = 'json_file_format');
+FILE_FORMAT = (FORMAT_NAME = 'customers_data.json');
 
 COPY INTO raw_orders_json(raw)
 FROM @raw_data_stage/orders.json
-FILE_FORMAT = (FORMAT_NAME = 'json_file_format');
+FILE_FORMAT = (FORMAT_NAME = 'orders_data.json');
 
+CREATE SCHEMA ORDERS_DB.CUSTOMERS_DATA;
 
 
 INSERT INTO td_customers (customer_id, first_name, last_name, email, registration_date)
@@ -135,8 +143,21 @@ SELECT * FROM sales_agg;
 
 
 
+SELECT COUNT(*) FROM td_customers;
+SELECT COUNT(*) FROM td_orders;
+SELECT COUNT(*) FROM td_order_items;
+
+SELECT COUNT(*) FROM raw_customers_json;
+SELECT COUNT(*) FROM raw_orders_json;
+
+
+
 SHOW DATABASES;
 SHOW SCHEMAS IN DATABASE orders_db;
 USE DATABASE orders_schema;
 USE SCHEMA orders_schema;
+
+SELECT * FROM TABLE(VALIDATE(
+  'COPY INTO raw_customers_json FROM @raw_data_stage/customers.json FILE_FORMAT = (FORMAT_NAME = ''json_file_format'')'
+));
 
